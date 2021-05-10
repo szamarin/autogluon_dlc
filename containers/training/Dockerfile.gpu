@@ -1,0 +1,39 @@
+
+ARG CUDA_VER=11.0
+ARG LINUX_VER=ubuntu18.04
+ARG PYTHON_VER=3.7
+ARG RAPIDS_VER=0.19
+ARG FROM_IMAGE=rapidsai/rapidsai-core
+
+FROM ${FROM_IMAGE}:${RAPIDS_VER}-cuda${CUDA_VER}-runtime-${LINUX_VER}-py${PYTHON_VER}
+ARG CUDA_VER
+ARG AUTOGLUON_VERSION=0.2.0
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONIOENCODING=UTF-8 \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    MXNET_CUDNN_LIB_CHECKING=0 \
+    SAGEMAKER_TRAINING_MODULE=sagemaker_mxnet_container.training:main \
+    LD_LIBRARY_PATH=/opt/conda/envs/rapids/lib:/usr/local/lib:$LD_LIBRARY_PATH \
+    PATH=/opt/conda/envs/rapids/bin:/usr/local/bin:$PATH 
+
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \ 
+    build-essential
+
+RUN source activate rapids \
+    && pip install --no-cache-dir numpy==1.19.5
+
+RUN source activate rapids \
+    && pip install --no-cache-dir -U --no-use-pep517 mxnet-cu$(echo ${CUDA_VER} | sed 's/\.//') \ 
+    setuptools \ 
+    wheel \
+    autogluon==${AUTOGLUON_VERSION} \
+    sagemaker-mxnet-training
+
+ENTRYPOINT []
+
+CMD ["/bin/bash"]

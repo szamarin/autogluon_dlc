@@ -1,0 +1,25 @@
+
+ARG AUTOGLUON_VERSION=0.2.0
+ARG PYTHON_VER=3.7.10
+ARG FROM_IMAGE=python
+ARG OS=slim-buster
+
+FROM ${FROM_IMAGE}:${PYTHON_VER}-${OS}
+
+RUN apt-get update \
+    && apt-get install gcc -y
+
+RUN pip install --no-cache-dir -U  torch==1.8.0+cpu torchvision==0.9.0+cpu -f https://download.pytorch.org/whl/torch_stable.html 
+RUN pip install --no-cache-dir -U  numpy==1.19.5
+
+RUN pip install --upgrade --no-cache-dir  \
+    setuptools \
+    wheel \
+    mxnet==1.7.* \
+    autogluon==${AUTOGLUON_VERSION} \
+    sagemaker-mxnet-training
+
+RUN apt-get autoremove -y && apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+    
+CMD ["/bin/bash"]
