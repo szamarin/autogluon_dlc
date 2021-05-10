@@ -1,10 +1,11 @@
 
-ARG AUTOGLUON_VERSION=0.2.0
 ARG PYTHON_VER=3.7.10
 ARG FROM_IMAGE=python
 ARG OS=slim-buster
 
 FROM ${FROM_IMAGE}:${PYTHON_VER}-${OS}
+
+ARG AUTOGLUON_VERSION=0.2.0
 
 RUN apt-get update \
     && apt-get install gcc -y

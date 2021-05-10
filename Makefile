@@ -3,7 +3,7 @@
 #################################################################################
 
 LOCAL_DATA_DIR = data
-LOCAL_CODE_DIR = code
+LOCAL_CODE_DIR = training_scripts
 DOCKERFILE_DIR = containers
 TARGET_DATA_DIR = /data
 TARGET_CODE_DIR = /code
@@ -33,15 +33,15 @@ push_train_gpu:
 ## Run interactive cpu
 run_train_cpu: 
 	docker container run -it --rm \
-	-v $(LOCAL_DATA_DIR):$(TARGET_DATA_DIR) \
-	-v $(LOCAL_CODE_DIR):$(TARGET_CODE_DIR) \
+	-v ${PWD}/$(LOCAL_DATA_DIR):$(TARGET_DATA_DIR) \
+	-v ${PWD}/$(LOCAL_CODE_DIR):$(TARGET_CODE_DIR) \
 	autogluon-cpu bash
 
 ## Run interactive gpu
 run_train_gpu: 
 	docker container run -it --rm \
-	-v $(LOCAL_DATA_DIR):$(TARGET_DATA_DIR) \
-	-v $(LOCAL_CODE_DIR):$(TARGET_CODE_DIR) \
+	-v ${PWD}/$(LOCAL_DATA_DIR):$(TARGET_DATA_DIR) \
+	-v ${PWD}/$(LOCAL_CODE_DIR):$(TARGET_CODE_DIR) \
 	autogluon-gpu bash
 
 #################################################################################
