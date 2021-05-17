@@ -4,34 +4,37 @@ from pprint import pprint
 import yaml
 from autogluon.tabular import TabularDataset, TabularPredictor
 
+
+def get_input_path(channel):
+    path = os.environ[channel]
+    file = os.listdir(path)[0]
+    if len(os.listdir(path)) > 1:
+        print(f'WARN: more than one file is found in {channel} directory')
+    print(f'Using {file}')
+    filename = f'{path}/{file}'
+    return filename
+
+
 if __name__ == '__main__':
     # ------------------------------------------------------------ Args parsing
     # See SageMaker-specific environment variables: https://sagemaker.readthedocs.io/en/stable/overview.html#prepare-a-training-script
     # TODO SM_NUM_GPUS
     model_save_path = os.environ['SM_MODEL_DIR']  # specifies folder to store trained models
-    print(f'model_save_path: {model_save_path}')
-
-    train_path = os.environ['SM_CHANNEL_TRAIN']
-    print(f'train_path: {train_path}')
 
     output_path = os.environ['SM_OUTPUT_DATA_DIR']
-    print(f'output_path: {output_path}')
     os.makedirs(output_path, mode=0o777, exist_ok=True)
 
-    test_path = None
-    if os.environ['SM_CHANNEL_TEST']:
-        test_path = os.environ['SM_CHANNEL_TEST']
-        print(f'test_path: {test_path}')
-
-    with open(os.environ['SM_CONFIG_FILE']) as f:
-        config = yaml.load(f)  # AutoGluon-specific config
+    config_file = get_input_path('SM_CHANNEL_CONFIG')
+    with open(config_file) as f:
+        config = yaml.safe_load(f)  # AutoGluon-specific config
 
     print('Running training job with the config:')
     pprint(config)
 
     # ---------------------------------------------------------------- Training
 
-    train_data = TabularDataset(train_path)
+    train_file = get_input_path('SM_CHANNEL_TRAIN')
+    train_data = TabularDataset(train_file)
 
     ag_predictor_args = config['ag_predictor_args']
     ag_predictor_args['path'] = model_save_path
@@ -41,8 +44,13 @@ if __name__ == '__main__':
 
     # --------------------------------------------------------------- Inference
 
+    test_path = None
+    if 'SM_CHANNEL_TEST' in os.environ:
+        test_path = get_input_path('SM_CHANNEL_TEST')
+
     if test_path:
-        test_data = TabularDataset(test_path)
+        test_file = get_input_path('SM_CHANNEL_TEST')
+        test_data = TabularDataset(test_file)
 
         y_pred_proba = predictor.predict_proba(test_data)
         if config.get('output_prediction_format', 'csv') == 'parquet':
