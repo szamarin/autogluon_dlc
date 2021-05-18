@@ -4,7 +4,8 @@
 
 LOCAL_DATA_DIR = data
 LOCAL_CODE_DIR = training_scripts
-DOCKERFILE_DIR = containers
+DOCKERFILE_DIR = docker
+CONTEXT_DIR = artifacts
 TARGET_DATA_DIR = /data
 TARGET_CODE_DIR = /code
 BASE_IMAGE_NAME = autogluon
@@ -14,35 +15,65 @@ PYTHON_INTERPRETER = python
 # COMMANDS                                                                      #
 #################################################################################
 
-## Build cpu image
+## Build cpu training image
 build_train_cpu: 
-	docker build -f $(DOCKERFILE_DIR)/training/Dockerfile.cpu  -t $(BASE_IMAGE_NAME)-cpu .
+	docker build -f $(DOCKERFILE_DIR)/training/Dockerfile.cpu  -t $(BASE_IMAGE_NAME)-training-cpu .
 
-## Build gpu image
+## Build gpu training image
 build_train_gpu: 
-	docker build -f $(DOCKERFILE_DIR)/training/Dockerfile.gpu  -t $(BASE_IMAGE_NAME)-gpu .
+	docker build -f $(DOCKERFILE_DIR)/training/Dockerfile.gpu  -t $(BASE_IMAGE_NAME)-training-gpu .
 
-## Build and push cpu
+## Build and push training cpu
 push_train_cpu: 
-	./build_and_push.sh $(BASE_IMAGE_NAME)-cpu $(DOCKERFILE_DIR)/training/Dockerfile.cpu
+	./build_and_push.sh $(BASE_IMAGE_NAME)-training-cpu $(DOCKERFILE_DIR)/training/Dockerfile.cpu
 
-## Build push gpu
+## Build push training gpu
 push_train_gpu: 
-	./build_and_push.sh $(BASE_IMAGE_NAME)-gpu $(DOCKERFILE_DIR)/training/Dockerfile.gpu
+	./build_and_push.sh $(BASE_IMAGE_NAME)-training-gpu $(DOCKERFILE_DIR)/training/Dockerfile.gpu
+    
+## Build cpu inference image
+build_inference_cpu: 
+	docker build -f $(DOCKERFILE_DIR)/inference/Dockerfile.cpu  -t $(BASE_IMAGE_NAME)-inference-cpu $(DOCKERFILE_DIR)/inference/$(CONTEXT_DIR)
 
-## Run interactive cpu
+## Build gpu inference image
+build_inference_gpu: 
+	docker build -f $(DOCKERFILE_DIR)/inference/Dockerfile.gpu  -t $(BASE_IMAGE_NAME)-inference-gpu $(DOCKERFILE_DIR)/inference/$(CONTEXT_DIR)
+
+## Build and push inference cpu
+push_inference_cpu: 
+	./build_and_push.sh $(BASE_IMAGE_NAME)-training-cpu $(DOCKERFILE_DIR)/inference/Dockerfile.cpu
+
+## Build push inference gpu
+push_inference_gpu: 
+	./build_and_push.sh $(BASE_IMAGE_NAME)-training-gpu $(DOCKERFILE_DIR)/inference/Dockerfile.gpu
+
+## Run interactive training cpu
 run_train_cpu: 
-	docker container run -it --rm \
+	docker container run -it --shm-size=4g --rm \
 	-v ${PWD}/$(LOCAL_DATA_DIR):$(TARGET_DATA_DIR) \
 	-v ${PWD}/$(LOCAL_CODE_DIR):$(TARGET_CODE_DIR) \
-	autogluon-cpu bash
+	$(BASE_IMAGE_NAME)-training-cpu bash
 
-## Run interactive gpu
+## Run interactive trainig gpu
 run_train_gpu: 
-	docker container run -it --rm \
+	docker container run -it --shm-size=4g --rm \
 	-v ${PWD}/$(LOCAL_DATA_DIR):$(TARGET_DATA_DIR) \
 	-v ${PWD}/$(LOCAL_CODE_DIR):$(TARGET_CODE_DIR) \
-	autogluon-gpu bash
+	$(BASE_IMAGE_NAME)-training-gpu bash
+
+## Run interactive training cpu
+run_inference_cpu: 
+	docker container run -it --shm-size=4g --rm \
+	-v ${PWD}/$(LOCAL_DATA_DIR):$(TARGET_DATA_DIR) \
+	-v ${PWD}/$(LOCAL_CODE_DIR):$(TARGET_CODE_DIR) \
+	$(BASE_IMAGE_NAME)-inference-cpu bash
+
+## Run interactive training gpu
+run_inference_gpu: 
+	docker container run -it --shm-size=4g --rm \
+	-v ${PWD}/$(LOCAL_DATA_DIR):$(TARGET_DATA_DIR) \
+	-v ${PWD}/$(LOCAL_CODE_DIR):$(TARGET_CODE_DIR) \
+	$(BASE_IMAGE_NAME)-inference-gpu bash
 
 #################################################################################
 # Self Documenting Commands                                                     #

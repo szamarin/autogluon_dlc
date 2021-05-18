@@ -1,0 +1,180 @@
+ADD file:e80ae8d359b484dac5346f98c549abc694e1d0c87e1d9753d495aed4d9c8b2b3 in /
+RUN set -xe
+   &&  echo '#!/bin/sh' > /usr/sbin/policy-rc.d
+   &&  echo 'exit 101' >> /usr/sbin/policy-rc.d
+   &&  chmod +x /usr/sbin/policy-rc.d
+   &&  dpkg-divert --local --rename --add /sbin/initctl
+   &&  cp -a /usr/sbin/policy-rc.d /sbin/initctl
+   &&  sed -i 's/^exit.*/exit 0/' /sbin/initctl
+   &&  echo 'force-unsafe-io' > /etc/dpkg/dpkg.cfg.d/docker-apt-speedup
+   &&  echo 'DPkg::Post-Invoke { "rm -f /var/cache/apt/archives/*.deb /var/cache/apt/archives/partial/*.deb /var/cache/apt/*.bin || true"; };' > /etc/apt/apt.conf.d/docker-clean
+   &&  echo 'APT::Update::Post-Invoke { "rm -f /var/cache/apt/archives/*.deb /var/cache/apt/archives/partial/*.deb /var/cache/apt/*.bin || true"; };' >> /etc/apt/apt.conf.d/docker-clean
+   &&  echo 'Dir::Cache::pkgcache ""; Dir::Cache::srcpkgcache "";' >> /etc/apt/apt.conf.d/docker-clean
+   &&  echo 'Acquire::Languages "none";' > /etc/apt/apt.conf.d/docker-no-languages
+   &&  echo 'Acquire::GzipIndexes "true"; Acquire::CompressionTypes::Order:: "gz";' > /etc/apt/apt.conf.d/docker-gzip-indexes
+   &&  echo 'Apt::AutoRemove::SuggestsImportant "false";' > /etc/apt/apt.conf.d/docker-autoremove-suggests
+RUN [ -z "$(apt-get indextargets)" ]
+RUN mkdir -p /run/systemd
+   &&  echo 'docker' > /run/systemd/container
+CMD ["/bin/bash"]
+LABEL maintainer=NVIDIA CORPORATION <cudatools@nvidia.com> 0B buildkit.dockerfile.v0
+RUN /bin/sh -c apt-get update
+   &&  apt-get install -y --no-install-recommends gnupg2 curl ca-certificates
+   &&  curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub | apt-key add -
+   &&  echo "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64 /" > /etc/apt/sources.list.d/cuda.list
+   &&  echo "deb https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64 /" > /etc/apt/sources.list.d/nvidia-ml.list
+   &&  apt-get purge --autoremove -y curl
+   &&  rm -rf /var/lib/apt/lists/* # buildkit 16.5MB buildkit.dockerfile.v0
+ENV CUDA_VERSION=10.2.89 0B buildkit.dockerfile.v0
+ENV CUDA_PKG_VERSION=10-2=10.2.89-1 0B buildkit.dockerfile.v0
+RUN /bin/sh -c apt-get update
+   &&  apt-get install -y --no-install-recommends cuda-cudart-$CUDA_PKG_VERSION cuda-compat-10-2
+   &&  ln -s cuda-10.2 /usr/local/cuda
+   &&  rm -rf /var/lib/apt/lists/* # buildkit 27.2MB buildkit.dockerfile.v0
+RUN /bin/sh -c echo "/usr/local/nvidia/lib" >> /etc/ld.so.conf.d/nvidia.conf
+   &&  echo "/usr/local/nvidia/lib64" >> /etc/ld.so.conf.d/nvidia.conf # buildkit 46B buildkit.dockerfile.v0
+ENV PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin 0B buildkit.dockerfile.v0
+ENV LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64 0B buildkit.dockerfile.v0
+COPY NGC-DL-CONTAINER-LICENSE / # buildkit 16kB buildkit.dockerfile.v0
+ENV NVIDIA_VISIBLE_DEVICES=all 0B buildkit.dockerfile.v0
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility 0B buildkit.dockerfile.v0
+ENV NVIDIA_REQUIRE_CUDA=cuda>=10.2 brand=tesla,driver>=396,driver<397 brand=tesla,driver>=410,driver<411 brand=tesla,driver>=418,driver<419 brand=tesla,driver>=440,driver<441 0B buildkit.dockerfile.v0
+LABEL maintainer=NVIDIA CORPORATION <cudatools@nvidia.com> 0B buildkit.dockerfile.v0
+ENV NCCL_VERSION=2.9.6 0B buildkit.dockerfile.v0
+RUN /bin/sh -c apt-get update
+   &&  apt-get install -y --no-install-recommends cuda-libraries-$CUDA_PKG_VERSION cuda-npp-$CUDA_PKG_VERSION cuda-nvtx-$CUDA_PKG_VERSION libcublas10=10.2.2.89-1 libnccl2=$NCCL_VERSION-1+cuda10.2
+   &&  apt-mark hold libnccl2
+   &&  rm -rf /var/lib/apt/lists/* # buildkit 1.19GB buildkit.dockerfile.v0
+ARG FULL_CUDA_VER
+ARG LINUX_VER
+ARG CONDA_VER=4.8.3
+ARG TINI_VER=v0.18.0
+ARG MINICONDA_URL=http://repo.anaconda.com/miniconda/Miniconda3-py38_4.8.3-Linux-x86_64.sh
+ARG TINI_URL=https://github.com/krallin/tini/releases/download/v0.18.0/tini
+ENV CONDA_DIR=/opt/conda
+ENV LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 LANGUAGE=en_US:en
+ENV PATH=/opt/conda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV DEBIAN_FRONTEND=noninteractive
+ENV CUDA_VERSION=10.2.89
+/bin/bash -c #(nop) SHELL [/bin/bash -c]
+|6 CONDA_VER=4.8.3 FULL_CUDA_VER=10.2.89 LINUX_VER=ubuntu18.04 MINICONDA_URL=http://repo.anaconda.com/miniconda/Miniconda3-py38_4.8.3-Linux-x86_64.sh TINI_URL=https://github.com/krallin/tini/releases/download/v0.18.0/tini TINI_VER=v0.18.0 /bin/bash -c if [ "${LINUX_VER:0:6}" == "ubuntu" ] ; then apt-get update -q
+   &&  apt-get upgrade -y
+   &&  apt-get install -y --no-install-recommends autoconf automake bzip2 ca-certificates curl git locales patch tzdata unzip wget
+   &&  apt-get clean
+   &&  rm -rf /var/lib/apt/lists/*
+   &&  sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+   &&  locale-gen ; else echo -e "\n\n>>>> SKIPPING: LINUX_VER is not 'ubuntu16.04' or 'ubuntu18.04'\n\n"; fi
+|6 CONDA_VER=4.8.3 FULL_CUDA_VER=10.2.89 LINUX_VER=ubuntu18.04 MINICONDA_URL=http://repo.anaconda.com/miniconda/Miniconda3-py38_4.8.3-Linux-x86_64.sh TINI_URL=https://github.com/krallin/tini/releases/download/v0.18.0/tini TINI_VER=v0.18.0 /bin/bash -c if [ "${LINUX_VER}" == "centos7" ] ; then yum-config-manager --disable cuda ; elif [ "${LINUX_VER}" == "centos8" ] ; then dnf install -y 'dnf-command(config-manager)' glibc-langpack-en
+   &&  dnf config-manager --set-disabled cuda ; fi
+|6 CONDA_VER=4.8.3 FULL_CUDA_VER=10.2.89 LINUX_VER=ubuntu18.04 MINICONDA_URL=http://repo.anaconda.com/miniconda/Miniconda3-py38_4.8.3-Linux-x86_64.sh TINI_URL=https://github.com/krallin/tini/releases/download/v0.18.0/tini TINI_VER=v0.18.0 /bin/bash -c if [ "${LINUX_VER:0:6}" == "centos" ] ; then yum -y update
+   &&  yum remove -y bind-license
+   &&  yum -y install --setopt=install_weak_deps=False autoconf automake bzip2 ca-certificates curl git make patch unzip wget which
+   &&  yum clean all ; else echo -e "\n\n>>>> SKIPPING: LINUX_VER is not 'centos7' or 'centos8'\n\n"; fi
+|6 CONDA_VER=4.8.3 FULL_CUDA_VER=10.2.89 LINUX_VER=ubuntu18.04 MINICONDA_URL=http://repo.anaconda.com/miniconda/Miniconda3-py38_4.8.3-Linux-x86_64.sh TINI_URL=https://github.com/krallin/tini/releases/download/v0.18.0/tini TINI_VER=v0.18.0 /bin/bash -c wget --quiet ${MINICONDA_URL} -O /miniconda.sh
+   &&  /bin/bash /miniconda.sh -b -p /opt/conda
+   &&  rm -f /miniconda.sh
+   &&  echo "conda ${CONDA_VER}" >> /opt/conda/conda-meta/pinned
+   &&  ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh
+   &&  echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc
+   &&  echo "conda activate base" >> ~/.bashrc
+   &&  echo ". /opt/conda/etc/profile.d/conda.sh" >> /etc/skel/.bashrc
+   &&  echo "auto_update_conda: False" >> /opt/conda/.condarc
+   &&  ln -s /opt/conda /conda
+|6 CONDA_VER=4.8.3 FULL_CUDA_VER=10.2.89 LINUX_VER=ubuntu18.04 MINICONDA_URL=http://repo.anaconda.com/miniconda/Miniconda3-py38_4.8.3-Linux-x86_64.sh TINI_URL=https://github.com/krallin/tini/releases/download/v0.18.0/tini TINI_VER=v0.18.0 /bin/bash -c chmod -R ugo+w /opt/conda
+   &&  /opt/conda/bin/conda clean -tipy
+   &&  chmod -R ugo+w /opt/conda
+|6 CONDA_VER=4.8.3 FULL_CUDA_VER=10.2.89 LINUX_VER=ubuntu18.04 MINICONDA_URL=http://repo.anaconda.com/miniconda/Miniconda3-py38_4.8.3-Linux-x86_64.sh TINI_URL=https://github.com/krallin/tini/releases/download/v0.18.0/tini TINI_VER=v0.18.0 /bin/bash -c wget --quiet ${TINI_URL} -O /usr/bin/tini
+   &&  chmod +x /usr/bin/tini
+/bin/bash -c #(nop) ENTRYPOINT ["/usr/bin/tini" "--"]
+/bin/bash -c #(nop) CMD ["/bin/bash"]
+422MB merge sha256:b0346e67020fb07242c7863e724ad730bb197ca3789792d38ea7ab11361830d0 to sha256:dd7c6b82ff5334dc6ce0fa674c45783e8c54debae4a72f48db9fcbf684fed733
+/bin/bash -c #(nop) ARG IMAGE_TYPE=base
+/bin/bash -c #(nop) ARG RAPIDS_CHANNEL=rapidsai-nightly
+/bin/bash -c #(nop) ARG RAPIDS_VER=0.15
+/bin/bash -c #(nop) ARG PYTHON_VER=3.7
+/bin/bash -c #(nop) ARG BUILD_STACK_VER=9.3.0
+/bin/bash -c #(nop) ARG CUDA_VER
+/bin/bash -c #(nop) SHELL [/bin/bash -c]
+|6 BUILD_STACK_VER=9.3.0 CUDA_VER=10.2 IMAGE_TYPE=runtime PYTHON_VER=3.7 RAPIDS_CHANNEL=rapidsai-nightly RAPIDS_VER=0.19 /bin/bash -c if [ "${RAPIDS_CHANNEL}" == "rapidsai" ] ; then echo -e "auto_update_conda: False \nssl_verify: False \nchannels: \n - gpuci \n - rapidsai \n - nvidia \n - pytorch \n - conda-forge \n - defaults \n" > /opt/conda/.condarc
+   &&  cat /opt/conda/.condarc ; else echo -e "auto_update_conda: False \nssl_verify: False \nchannels: \n - gpuci \n - rapidsai-nightly \n - rapidsai \n - nvidia \n - pytorch \n - conda-forge \n - defaults \n" > /opt/conda/.condarc
+   &&  cat /opt/conda/.condarc ; fi
+|6 BUILD_STACK_VER=9.3.0 CUDA_VER=10.2 IMAGE_TYPE=runtime PYTHON_VER=3.7 RAPIDS_CHANNEL=rapidsai-nightly RAPIDS_VER=0.19 /bin/bash -c conda install -y gpuci-tools || conda install -y gpuci-tools
+|6 BUILD_STACK_VER=9.3.0 CUDA_VER=10.2 IMAGE_TYPE=runtime PYTHON_VER=3.7 RAPIDS_CHANNEL=rapidsai-nightly RAPIDS_VER=0.19 /bin/bash -c gpuci_conda_retry create --no-default-packages --override-channels -n rapids -c nvidia -c conda-forge -c defaults -c gpuci cudatoolkit=${CUDA_VER} git gpuci-tools libgcc-ng=${BUILD_STACK_VER} libstdcxx-ng=${BUILD_STACK_VER} python=${PYTHON_VER} 'python_abi=*=*cp*' "setuptools<50"
+   &&  sed -i 's/conda activate base/conda activate rapids/g' ~/.bashrc
+|6 BUILD_STACK_VER=9.3.0 CUDA_VER=10.2 IMAGE_TYPE=runtime PYTHON_VER=3.7 RAPIDS_CHANNEL=rapidsai-nightly RAPIDS_VER=0.19 /bin/bash -c ln -s /opt/conda/envs/rapids /opt/conda/envs/gdf
+|6 BUILD_STACK_VER=9.3.0 CUDA_VER=10.2 IMAGE_TYPE=runtime PYTHON_VER=3.7 RAPIDS_CHANNEL=rapidsai-nightly RAPIDS_VER=0.19 /bin/bash -c if [ "${IMAGE_TYPE}" == "runtime" ] ; then gpuci_conda_retry install -y -n rapids --freeze-installed rapids-notebook-env=${RAPIDS_VER}
+   &&  gpuci_conda_retry remove -y -n rapids --force-remove rapids-notebook-env=${RAPIDS_VER} ; else echo -e "\n\n>>>> SKIPPING: IMAGE_TYPE is not 'runtime'\n\n"; fi
+|6 BUILD_STACK_VER=9.3.0 CUDA_VER=10.2 IMAGE_TYPE=runtime PYTHON_VER=3.7 RAPIDS_CHANNEL=rapidsai-nightly RAPIDS_VER=0.19 /bin/bash -c chmod -R ugo+w /opt/conda
+   &&  conda clean -tipy
+   &&  chmod -R ugo+w /opt/conda
+/bin/bash -c #(nop) ENTRYPOINT ["/usr/bin/tini" "--"]
+/bin/bash -c #(nop) CMD ["/bin/bash"]
+3.32GB merge sha256:b9b83bdc0cca32c3e206e2764d464c468704833951ae408e235f729510ae95df to sha256:7a1dd1a1f1b1b2b26b48d9006d5f4ff8527ca7594068ad55b6989b8a6ce43917
+/bin/bash -c #(nop) ARG DASK_XGBOOST_VER=0.2*
+/bin/bash -c #(nop) ARG RAPIDS_VER
+/bin/bash -c #(nop) ARG BUILD_BRANCH=branch-0.19
+|3 BUILD_BRANCH=main DASK_XGBOOST_VER=0.2* RAPIDS_VER=0.19 /bin/bash -c if [ "${BUILD_BRANCH}" = "main" ]; then sed -i '/nightly/d' /opt/conda/.condarc; fi
+/bin/bash -c #(nop) ENV RAPIDS_DIR=/rapids
+|3 BUILD_BRANCH=main DASK_XGBOOST_VER=0.2* RAPIDS_VER=0.19 /bin/bash -c mkdir -p ${RAPIDS_DIR}/utils
+/bin/bash -c #(nop) COPY multi:4e2e708e3ecc498079b3018d2120b82c37f9e2d017d32054a97b287abd848e27 in /rapids/utils/
+|3 BUILD_BRANCH=main DASK_XGBOOST_VER=0.2* RAPIDS_VER=0.19 /bin/bash -c apt-get update
+   &&  apt-get install --no-install-recommends -y openssh-client
+   &&  rm -rf /var/lib/apt/lists/*
+|3 BUILD_BRANCH=main DASK_XGBOOST_VER=0.2* RAPIDS_VER=0.19 /bin/bash -c source activate rapids
+   &&  env
+   &&  conda info
+   &&  conda config --show-sources
+   &&  conda list --show-channel-urls
+|3 BUILD_BRANCH=main DASK_XGBOOST_VER=0.2* RAPIDS_VER=0.19 /bin/bash -c gpuci_conda_retry install -y -n rapids "rapids=${RAPIDS_VER}*"
+|3 BUILD_BRANCH=main DASK_XGBOOST_VER=0.2* RAPIDS_VER=0.19 /bin/bash -c source activate rapids
+   &&  npm i -g npm@">=7.0 <7.11"
+|3 BUILD_BRANCH=main DASK_XGBOOST_VER=0.2* RAPIDS_VER=0.19 /bin/bash -c apt-get update
+   &&  apt-get -y upgrade
+   &&  rm -rf /var/lib/apt/lists/*
+|3 BUILD_BRANCH=main DASK_XGBOOST_VER=0.2* RAPIDS_VER=0.19 /bin/bash -c gpuci_conda_retry install -y -n rapids "rapids-notebook-env=${RAPIDS_VER}*"
+   &&  gpuci_conda_retry remove -y -n rapids --force-remove "rapids-notebook-env=${RAPIDS_VER}*"
+|3 BUILD_BRANCH=main DASK_XGBOOST_VER=0.2* RAPIDS_VER=0.19 /bin/bash -c gpuci_conda_retry install -y -n rapids jupyterlab-nvdashboard
+|3 BUILD_BRANCH=main DASK_XGBOOST_VER=0.2* RAPIDS_VER=0.19 /bin/bash -c source activate rapids
+   &&  jupyter labextension install @jupyter-widgets/jupyterlab-manager dask-labextension jupyterlab-nvdashboard
+   &&  jupyter lab clean
+   &&  jlpm cache clean
+/bin/bash -c #(nop) ENV DASK_LABEXTENSION__FACTORY__MODULE=dask_cuda
+/bin/bash -c #(nop) ENV DASK_LABEXTENSION__FACTORY__CLASS=LocalCUDACluster
+|3 BUILD_BRANCH=main DASK_XGBOOST_VER=0.2* RAPIDS_VER=0.19 /bin/bash -c cd ${RAPIDS_DIR}
+   &&  source activate rapids
+   &&  git clone -b ${BUILD_BRANCH} --depth 1 --single-branch https://github.com/rapidsai/notebooks.git
+   &&  cd notebooks
+   &&  git submodule update --init --remote --no-single-branch --depth 1
+/bin/bash -c #(nop) COPY file:bf604f3057c8f3f4062608a8e7d2e80c1827c60aaf48a593fc63f9722e70ba92 in /
+/bin/bash -c #(nop) COPY multi:3f55d4e2699b3bb1a092270094cc5b257d3e801a15aade084648673691a23439 in /rapids/utils/
+/bin/bash -c #(nop) WORKDIR /rapids/notebooks
+/bin/bash -c #(nop) EXPOSE 8888
+/bin/bash -c #(nop) EXPOSE 8787
+/bin/bash -c #(nop) EXPOSE 8786
+/bin/bash -c #(nop) COPY file:a888b227dce910dad0aba0b80f3be2c04f04c38f8f84d86d73847822ff4fc5e1 in /opt/docker/bin/
+|3 BUILD_BRANCH=main DASK_XGBOOST_VER=0.2* RAPIDS_VER=0.19 /bin/bash -c chmod -R ugo+w /opt/conda ${RAPIDS_DIR}
+   &&  conda clean -tipy
+   &&  chmod -R ugo+w /opt/conda ${RAPIDS_DIR}
+/bin/bash -c #(nop) COPY file:d69330b896afc9eb6b79d6454d0c7826422056a2612ccc1e4e7e3660b1facb7f in .
+/bin/bash -c #(nop) COPY file:3234c2f49a1ab9b9bea61191da00ff86354276d9449af045388956918554448d in /opt/docker/bin/entrypoint_source
+/bin/bash -c #(nop) COPY file:7a3f3022b59d53718f821c624af77fbce61f12f8274b948efd854afb34c21cfe in /opt/docker/bin/entrypoint
+/bin/bash -c #(nop) ENTRYPOINT ["/usr/bin/tini" "--" "/opt/docker/bin/entrypoint"]
+/bin/bash -c #(nop) CMD ["/bin/bash"]
+4.12GB merge sha256:3c37c90279db1c98152f24a64d227aa3378063a4e3666302a7ab646b4bf6d968 to sha256:567c6d6a9e89f2bc6fefa40a3e578b0de094329bf3f09c5342700906be8c0569
+/bin/bash -c #(nop) ARG CUDA_VER
+/bin/bash -c #(nop) ARG AUTOGLUON_VERSION=0.2.0
+/bin/bash -c #(nop) ARG MXNET_VERSION=1.7.*
+/bin/bash -c #(nop) ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONIOENCODING=UTF-8 LANG=C.UTF-8 LC_ALL=C.UTF-8 MXNET_CUDNN_LIB_CHECKING=0 SAGEMAKER_TRAINING_MODULE=sagemaker_mxnet_container.training:main LD_LIBRARY_PATH=/opt/conda/envs/rapids/lib:/usr/local/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64 PATH=/opt/conda/envs/rapids/bin:/usr/local/bin:/opt/conda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+|3 AUTOGLUON_VERSION=0.2.0 CUDA_VER=10.2 MXNET_VERSION=1.7.* /bin/bash -c apt-get update
+   &&  apt install -y --no-install-recommends build-essential libgl1-mesa-glx
+|3 AUTOGLUON_VERSION=0.2.0 CUDA_VER=10.2 MXNET_VERSION=1.7.* /bin/bash -c source activate rapids
+   &&  pip install --no-cache-dir numpy==1.19.5
+|3 AUTOGLUON_VERSION=0.2.0 CUDA_VER=10.2 MXNET_VERSION=1.7.* /bin/bash -c source activate rapids
+   &&  pip install --no-cache-dir -U --no-use-pep517 mxnet-cu$(echo ${CUDA_VER} | sed 's/\.//')==${MXNET_VERSION} setuptools wheel autogluon==${AUTOGLUON_VERSION} sagemaker-mxnet-training
+|3 AUTOGLUON_VERSION=0.2.0 CUDA_VER=10.2 MXNET_VERSION=1.7.* /bin/bash -c source activate rapids
+   &&  pip uninstall -y jupyter-client jupyter-core jupyter-packaging jupyter-server jupyter-server-proxy jupyterlab jupyterlab-nvdashboard jupyterlab-pygments jupyterlab-server jupyterlab-widgets ipywidgets ipython-genutils ipython ipykernel torchvision bokeh plotly notebook datashader
+|3 AUTOGLUON_VERSION=0.2.0 CUDA_VER=10.2 MXNET_VERSION=1.7.* /bin/bash -c apt-get autoremove -y
+   &&  apt-get clean
+   &&  rm -rf /var/lib/apt/lists/*
+/bin/bash -c #(nop) ENTRYPOINT []
+/bin/bash -c #(nop) CMD ["/bin/bash"]

@@ -1,0 +1,66 @@
+ARG FROM_IMAGE=ubuntu:18.04
+
+FROM ${FROM_IMAGE}
+
+ARG PYTHON_VERSION=3.7.10
+ARG PYTHON=python3
+ARG MXNET_VER=1.7.*
+ARG TORCH_VER=1.8.0+cpu
+ARG TORCH_VISION_VER=0.9.0+cpu
+ARG NUMPY_VER=1.19.5
+ARG AUTOGLUON_VERSION=0.2.0
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib" \
+    PYTHONIOENCODING=UTF-8 \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    SAGEMAKER_TRAINING_MODULE=sagemaker_mxnet_container.training:main
+
+# Install dependencies    
+RUN apt-get update \
+      && apt-get -y install gcc \
+      build-essential \
+      wget \
+      unzip \
+      zlib1g-dev \
+      libssl-dev \
+      libncurses5-dev \
+      libgdbm-dev \
+      libnss3-dev \
+      libgl1-mesa-glx \
+      libreadline-dev \
+      libffi-dev \
+      ca-certificates \
+      openjdk-11-jre-headless \ 
+      openjdk-11-jre 
+      
+# install Python
+RUN wget -q https://www.python.org/ftp/python/$PYTHON_VERSION/Python-$PYTHON_VERSION.tgz \
+ && tar -xzf Python-$PYTHON_VERSION.tgz \
+ && cd Python-$PYTHON_VERSION \
+ && ./configure --enable-shared --prefix=/usr/local \
+ && make -j $(nproc) && make install \
+ && cd .. && rm -rf ../Python-$PYTHON_VERSION* \
+ && ln -s /usr/local/bin/pip3 /usr/bin/pip \
+ && ln -s /usr/local/bin/$PYTHON /usr/local/bin/python \
+ && pip --no-cache-dir install --upgrade \
+    pip \
+    setuptools
+
+
+RUN pip install --no-cache-dir -U torch==${TORCH_VER} torchvision==${TORCH_VISION_VER} -f https://download.pytorch.org/whl/torch_stable.html \
+    numpy==${NUMPY_VER} \
+    mxnet==${MXNET_VER} \
+    autogluon==${AUTOGLUON_VERSION} \
+    sagemaker-mxnet-training
+    
+RUN apt-get autoremove \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+
+CMD ["/bin/bash"]
+
+
