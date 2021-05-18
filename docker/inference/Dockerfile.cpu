@@ -38,6 +38,7 @@ RUN apt-get update \
       zlib1g-dev \
       libssl-dev \
       libsqlite3-dev \
+      libffi-dev \
       libncursesw5-dev \
       libnss3-dev \
       libc6-dev \
