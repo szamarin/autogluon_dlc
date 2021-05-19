@@ -32,9 +32,7 @@ RUN apt-get update \
       libgl1-mesa-glx \
       libreadline-dev \
       libffi-dev \
-      ca-certificates \
-      openjdk-11-jre-headless \ 
-      openjdk-11-jre 
+      ca-certificates
       
 # install Python
 RUN wget -q https://www.python.org/ftp/python/$PYTHON_VERSION/Python-$PYTHON_VERSION.tgz \

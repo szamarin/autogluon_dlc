@@ -44,9 +44,7 @@ RUN apt-get update \
       libc6-dev \
       libgl1-mesa-glx \
       libreadline-dev \
-      ca-certificates \
-      openjdk-11-jre-headless \ 
-      openjdk-11-jre 
+      ca-certificates 
             
 # install Python
 RUN wget -q https://www.python.org/ftp/python/$PYTHON_VERSION/Python-$PYTHON_VERSION.tgz \
@@ -69,8 +67,11 @@ RUN pip install --no-cache-dir -U torch==${TORCH_VER} torchvision==${TORCH_VISIO
     ${MX_URL} \
     mxnet==${MXNET_VER} \
     autogluon==${AUTOGLUON_VERSION} \
-    multi-model-server==$MMS_VERSION \
     sagemaker-mxnet-inference
+
+# install java with mms
+RUN apt-get -y install openjdk-8-jre-headless \ 
+    && pip install --no-cache-dir -U multi-model-server==$MMS_VERSION 
     
 RUN useradd -m model-server \
  && mkdir -p /home/model-server/tmp \
