@@ -15,7 +15,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONIOENCODING=UTF-8 \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
-    SAGEMAKER_TRAINING_MODULE=sagemaker_mxnet_container.training:main
+    SAGEMAKER_TRAINING_MODULE=sagemaker_mxnet_container.training:main \
+    DEBIAN_FRONTEND="noninteractive" \
+    TZ="UTC"
 
 # Install dependencies    
 RUN apt-get update \
@@ -31,6 +33,11 @@ RUN apt-get update \
       libgl1-mesa-glx \
       libreadline-dev \
       libffi-dev \
+      liblzma-dev \
+      libbz2-dev \
+      libsqlite3-dev \
+      tk-dev \
+      uuid-dev \
       ca-certificates \
     && apt-get autoremove -y \
     && apt-get clean \
