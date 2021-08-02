@@ -1,7 +1,4 @@
-
-ARG FROM_IMAGE=ubuntu:18.04
-
-FROM ${FROM_IMAGE}
+FROM 763104351884.dkr.ecr.us-east-1.amazonaws.com/mxnet-inference:1.8.0-cpu-py37
 
 # Specify accept-bind-to-port LABEL for inference pipelines to use SAGEMAKER_BIND_TO_PORT
 # https://docs.aws.amazon.com/sagemaker/latest/dg/inference-pipeline-real-time.html
@@ -10,111 +7,16 @@ LABEL com.amazonaws.sagemaker.capabilities.accept-bind-to-port=true
 # https://docs.aws.amazon.com/sagemaker/latest/dg/build-multi-model-build-container.html
 LABEL com.amazonaws.sagemaker.capabilities.multi-models=true
 
-ARG PYTHON_VERSION=3.7.10
-ARG PYTHON=python3
-ARG MXNET_VER=1.7.*
-ARG MX_URL=https://aws-mx-pypi.s3-us-west-2.amazonaws.com/1.7.0/aws_mx-1.7.0-py2.py3-none-manylinux2014_x86_64.whl
 ARG TORCH_VER=1.8.0+cpu
 ARG TORCH_VISION_VER=0.9.0+cpu
-ARG MMS_VERSION=1.1.2
 ARG NUMPY_VER=1.19.5
 ARG AUTOGLUON_VERSION=0.2.0
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib" \
-    PYTHONIOENCODING=UTF-8 \
-    LANG=C.UTF-8 \
-    LC_ALL=C.UTF-8 \
-    TEMP=/home/model-server/tmp
-
-
-# Install dependencies    
-RUN apt-get update \
-      && apt-get -y install gcc \
-      build-essential \
-      wget \
-      unzip \
-      zlib1g-dev \
-      libssl-dev \
-      libsqlite3-dev \
-      libffi-dev \
-      libncursesw5-dev \
-      libnss3-dev \
-      libc6-dev \
-      libgl1-mesa-glx \
-      libreadline-dev \
-      ca-certificates 
-            
-# install Python
-RUN wget -q https://www.python.org/ftp/python/$PYTHON_VERSION/Python-$PYTHON_VERSION.tgz \
- && tar -xzf Python-$PYTHON_VERSION.tgz \
- && cd Python-$PYTHON_VERSION \
- && ./configure --enable-shared --prefix=/usr/local \
- && make -j $(nproc) && make install \
- && cd .. && rm -rf ../Python-$PYTHON_VERSION* \
- && ln -s /usr/local/bin/pip3 /usr/bin/pip \
- && ln -s /usr/local/bin/$PYTHON /usr/local/bin/python \
- && pip --no-cache-dir install --upgrade \
-    pip \
-    setuptools \
- && rm -rf ../Python-$PYTHON_VERSION*
-
-WORKDIR /
-
 RUN pip install --no-cache-dir -U torch==${TORCH_VER} torchvision==${TORCH_VISION_VER} -f https://download.pytorch.org/whl/torch_stable.html \
     numpy==${NUMPY_VER} \
-    ${MX_URL} \
-    mxnet==${MXNET_VER} \
-    autogluon==${AUTOGLUON_VERSION} \
-    sagemaker-mxnet-inference
-
-# install java with mms
-RUN apt-get -y install openjdk-8-jre-headless \ 
-    && pip install --no-cache-dir -U multi-model-server==$MMS_VERSION 
-    
-RUN useradd -m model-server \
- && mkdir -p /home/model-server/tmp \
- && chown -R model-server /home/model-server
-
-COPY mms-entrypoint.py /usr/local/bin/dockerd-entrypoint.py
-COPY config.properties /home/model-server
-
-RUN chmod +x /usr/local/bin/dockerd-entrypoint.py
-
-
-RUN apt-get autoremove \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
+    autogluon==${AUTOGLUON_VERSION}
 
 EXPOSE 8080 8081
 ENTRYPOINT ["python", "/usr/local/bin/dockerd-entrypoint.py"]
 CMD ["multi-model-server" "--start" "--mms-config" "/home/model-server/config.properties"]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

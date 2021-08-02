@@ -41,7 +41,7 @@ build_inference_gpu:
 
 ## Build and push inference cpu
 push_inference_cpu: 
-	./build_and_push.sh $(BASE_IMAGE_NAME)-training-cpu $(DOCKERFILE_DIR)/inference/Dockerfile.cpu
+	./build_and_push.sh $(BASE_IMAGE_NAME)-inference-cpu $(DOCKERFILE_DIR)/inference/Dockerfile.cpu
 
 ## Build push inference gpu
 push_inference_gpu: 
